@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dart_console/dart_console.dart';
 import 'package:meta/meta.dart';
 import '../console_util.dart';
@@ -75,6 +77,12 @@ class SelectableList<T> {
     var _scrollTo = math.min(items.length, scrollAfter);
 
     return SelectableList._(console, position, optionManager, width, scrollAfter, _items, lowerDescription, upperDescription, multi, min, max, autoSelect, _scrolling, _scrollTo);
+  }
+
+  Future<T> displayOneFuture() {
+    final completer = Completer<T>();
+    displayOne(completer.complete);
+    return completer.future;
   }
 
   /// Same as [#display(void Function(List<T>))] but only takes the first
@@ -160,9 +168,10 @@ class SelectableList<T> {
       _redisplay();
     }
 
-    clearView(console, _cursor, width, _cursor.row - position.row + 1);
     callback(getSelected().map((option) => option.value).toList());
   }
+
+  void destroy() => clearView(console, _cursor, width, _cursor.row - position.row + 1);
 
   int amountSelected() => getSelected().length;
 

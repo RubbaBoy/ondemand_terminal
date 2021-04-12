@@ -1,5 +1,6 @@
 import 'package:dart_console/dart_console.dart';
 import 'package:ondemand/get_kitchens.dart' as _get_kitchens;
+import 'package:ondemand/ondemand.dart';
 
 import '../../enums.dart';
 import '../ansi.dart';
@@ -11,6 +12,15 @@ class DefaultOptionManager<T> with OptionManager<T> {
 
   @override
   bool isSelectable(T _) => true;
+}
+
+class StringOptionManager<T> extends DefaultOptionManager<T> {
+  final String Function(Option<T>) stringGenerator;
+
+  StringOptionManager(this.stringGenerator);
+
+  @override
+  String displayString(Option<T> option) => stringGenerator(option);
 }
 
 /// Displays kitchens in the format of:
@@ -31,9 +41,11 @@ class KitchenOptionManager with OptionManager<KitchenSelector> {
     var kitchen = option.value.kitchen;
     return [
       FormattedString(kitchen.name),
-      FormattedString(
-          '${kitchen.availableAt.opens} -\n${kitchen.availableAt.closes}',
-          ansiSetColor(ansiForegroundColors[ConsoleColor.brightBlack])),
+      if (kitchen.availableAt.opens.isNotEmpty &&
+          kitchen.availableAt.closes.isNotEmpty)
+        FormattedString(
+            '${kitchen.availableAt.opens} -\n${kitchen.availableAt.closes}',
+            ansiSetColor(ansiForegroundColors[ConsoleColor.brightBlack])),
       if (!option.selectable)
         FormattedString('Closed',
             ansiSetColor(ansiForegroundColors[ConsoleColor.brightRed]))
@@ -45,12 +57,12 @@ class KitchenOptionManager with OptionManager<KitchenSelector> {
     var time = selector.time;
     var kitchen = selector.kitchen;
     if (time == OrderPlaceTime.ASAP) {
-      return !kitchen.isAsapOrderDisabled &&
-          kitchen.availableAt.availableNow;
+      return !kitchen.isAsapOrderDisabled && kitchen.availableAt.availableNow;
     }
 
     return kitchen.isScheduleOrderEnabled &&
-            isBetweenOrderTime(time.time.start, OrderTime.fromAvailableAt(kitchen.availableAt));
+        isBetweenOrderTime(
+            time.time.start, OrderTime.fromAvailableAt(kitchen.availableAt));
   }
 }
 

@@ -30,8 +30,9 @@ abstract class OptionManager<T> {
   List<FormattedString> displayFormattedString(Option<T> option) =>
       [FormattedString(displayString(option))];
 
-  /// Gets if the [T] should create a selectable option.
-  bool isSelectable(T t);
+  /// Gets if the [T] should create a selectable option. Defaults to true for
+  /// everything.
+  bool isSelectable(T t) => true;
 
   Option<T> createOption(T t) => Option<T>(t, selectable: isSelectable(t));
 }

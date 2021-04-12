@@ -2,8 +2,18 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:ondemand/get_kitchens.dart' as _get_kitchens;
 import 'package:dart_console/dart_console.dart';
 import 'package:intl/intl.dart';
+import 'package:ondemand/get_revenue_category.dart';
+import 'package:ondemand/ondemand.dart';
+import 'package:ondemand/get_menus.dart' as _get_menus;
+import 'package:ondemand/get_items.dart' as _get_items;
+import 'package:ondemand_terminal/console/history.dart';
+import 'package:ondemand_terminal/console/screens/list_categories.dart';
+import 'package:ondemand_terminal/console/screens/list_items.dart';
+import 'package:ondemand_terminal/console/screens/list_places.dart';
+import 'package:ondemand_terminal/console/screens/welcome.dart';
 
 import 'console/breadcrumb.dart';
 import 'console/cart.dart';
@@ -41,11 +51,9 @@ class OnDemandConsole {
 
   static const startContent = Coordinate(5, 0);
 
-  final OnDemandLogic logic = OnDemandLogic();
+  final logic = OnDemandLogic();
 
   final Console console = Console();
-
-  int mainPanelWidth;
 
   Future<void> show() async {
     var height = console.windowHeight;
@@ -83,137 +91,24 @@ class OnDemandConsole {
         trail: []);
     breadcrumb.update();
 
-    mainPanelWidth = max(width - cart.width, (width * 0.75).floor()) - 5;
-
-    // BruhDisplay
-
-    // var tile = TiledSelection(console: console, position: startContent,
-    //   items: [Bruh(), Bruh(), Bruh(), Bruh(), Bruh()],
-    //   stringStrategy: const BruhDisplay(),
-    //   tileWidth: (mainPanelWidth / 4).floor(),
-    //   tileHeight: 6,
-    //   containerWidth: mainPanelWidth,
-    //   borderColor: ConsoleColor.brightBlack,
-    //   selectedColor: ConsoleColor.brightGreen,
-    // );
-    //
-    // tile.show((t) {
-    //   console.writeLine('Selected: $t');
-    // });
-    //
-    // if (true) return;
-
-    // var list = SelectableList<String>(
-    //   console: console,
-    //   position: startContent,
-    //   width: (width / 2).floor(),
-    //   items: ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'],
-    //   min: 1,
-    //   max: 3,
-    //   multi: true,
-    //   scrollAfter: 3,
-    // );
-    //
-    // list.display((selected) {
-    //   console.writeLine('Selected: $selected');
-    // });
+    var mainPanelWidth = max(width - cart.width, (width * 0.75).floor()) - 5;
 
     await submitTask(init());
 
-    breadcrumb.trailAdd('Welcome');
+    var context = Context(this, logic, breadcrumb, mainPanelWidth, startContent);
 
-    var time = await showWelcome();
-    console.cursorPosition = startContent;
+    final nav = Navigator(context);
+    nav.addRoute('welcome', () => Welcome(nav, context));
+    nav.addRoute('list_places', () => ListPlaces(nav, context));
+    nav.addRoute('list_categories', () => ListCategories(nav, context));
+    nav.addRoute('list_items', () => ListItems(nav, context));
 
-    // Selected time: $time
-
-    breadcrumb.trailAdd('$time');
-
-    await listPlaces(time);
+    await nav.routeToName('welcome');
 
     close(console);
   }
 
-  Future<void> init() async {
-    await logic.init();
-  }
-
-  Future<OrderPlaceTime> showWelcome() {
-    final completer = Completer<OrderPlaceTime>();
-    console.cursorPosition = startContent;
-
-    var lines = writeLines(
-'''Welcome to the RIT OnDemand Terminal! The goal of this is to fully utilize the RIT OnDemand through the familiarity of your terminal.
-To select menu items, use arrow keys to navigate, space to select, and enter to finalize.''', mainPanelWidth);
-
-    var timePosition = startContent.add(row: lines + 1);
-
-    var list = SelectableList<OrderPlaceTime>(
-      console: console,
-      upperDescription: 'Please select a time for your order:',
-      position: timePosition,
-      width: mainPanelWidth,
-      items: OrderPlaceTime.values,
-      multi: false,
-      autoSelect: true
-    );
-
-    list.displayOne((time) async {
-      console.cursorPosition = timePosition;
-
-      if (time == OrderPlaceTime.FIND) {
-        time = await showTimes(timePosition);
-      }
-
-      clearView(console, timePosition, mainPanelWidth, lines + 1);
-      console.cursorPosition = timePosition;
-
-      completer.complete(time);
-    });
-
-    return completer.future;
-  }
-
-  Future<OrderPlaceTime> showTimes(Coordinate position) async {
-    final completer = Completer<OrderTime>();
-    var times = await submitTask(logic.getOrderTimes());
-
-    // print('times = $times');
-
-    // close(console);
-
-    var list = SelectableList<OrderTime>(
-        console: console,
-        position: position,
-        upperDescription: 'Please select a time for your order:',
-        width: mainPanelWidth,
-        items: times,
-        multi: false,
-        autoSelect: true,
-        scrollAfter: 15
-    );
-
-    list.displayOne(completer.complete);
-
-    return completer.future.then((time) => OrderPlaceTime.fromTime(time));
-  }
-
-  Future<void> listPlaces(OrderPlaceTime time) async {
-    var kitchens = await submitTask(logic.getKitchens());
-    var tile = TiledSelection<KitchenSelector>(console: console, position: startContent,
-      items: kitchens.map((e) => KitchenSelector(e, time)).toList(),
-      optionManager: const KitchenOptionManager(),
-      tileWidth: (mainPanelWidth / 4).floor(),
-      tileHeight: 6,
-      containerWidth: mainPanelWidth,
-      borderColor: ConsoleColor.brightBlack,
-      selectedColor: ConsoleColor.brightGreen,
-    );
-
-    tile.show((t) {
-      print('Selected kitchen: ${t.kitchen.name}');
-    });
-  }
+  Future<void> init() async => await logic.init();
 
   Future<T> submitTask<T>(Future<T> future) {
     loading.start();
@@ -224,17 +119,16 @@ To select menu items, use arrow keys to navigate, space to select, and enter to 
       return value;
     });
   }
+}
 
-  /// Writes lines wrapped to the given width, returning the newlines used.
-  int writeLines(String text, int width) {
-    var lines = 0;
-    for (var line in text.split('\n')) {
-      var wrapped = wrapString(line, width);
-      lines += wrapped.split('\n').length;
-      console.writeLine(wrapped);
-    }
-    return lines;
-  }
+class Context {
+  final OnDemandConsole console;
+  final OnDemandLogic logic;
+  final Breadcrumb breadcrumb;
+  final int mainPanelWidth;
+  final Coordinate startContent;
+
+  Context(this.console, this.logic, this.breadcrumb, this.mainPanelWidth, this.startContent);
 }
 
 List<FormattedString> wrapFormattedStringList(List<FormattedString> strings, int width, [int prefixChars = 0]) {

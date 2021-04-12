@@ -13,6 +13,11 @@ List<OrderTime> calculateOrderTimes(Time startTime, Time endTime, int intervalTi
     times.removeAt(0);
   }
 
+  if (times.isEmpty) {
+    // TODO: This is a hack! Make this in env variables!!!
+    times.add(OrderTime(Time.fromString('7:15 pm'), Time.fromString('7:30 pm')));
+  }
+
   return times;
 }
 
@@ -86,6 +91,10 @@ class Time {
 
   factory Time.fromString(String time) {
     var split = time.split(RegExp(r'[\s:]'));
+    // TODO: Yucky!
+    if (split.length != 3) {
+      return Time.fromString('12:00 am');
+    }
     return Time(split[0].parseInt(), split[1].parseInt(), split[2]);
   }
 
