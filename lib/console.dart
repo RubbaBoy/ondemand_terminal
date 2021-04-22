@@ -10,6 +10,7 @@ import 'package:ondemand/ondemand.dart';
 import 'package:ondemand/get_menus.dart' as _get_menus;
 import 'package:ondemand/get_items.dart' as _get_items;
 import 'package:ondemand_terminal/console/history.dart';
+import 'package:ondemand_terminal/console/screens/item_option.dart';
 import 'package:ondemand_terminal/console/screens/list_categories.dart';
 import 'package:ondemand_terminal/console/screens/list_items.dart';
 import 'package:ondemand_terminal/console/screens/list_places.dart';
@@ -102,6 +103,7 @@ class OnDemandConsole {
     nav.addRoute('list_places', () => ListPlaces(nav, context));
     nav.addRoute('list_categories', () => ListCategories(nav, context));
     nav.addRoute('list_items', () => ListItems(nav, context));
+    nav.addRoute('item_option', () => ItemOption(nav, context));
 
     await nav.routeToName('welcome');
 
@@ -118,6 +120,17 @@ class OnDemandConsole {
       console.cursorPosition = startContent;
       return value;
     });
+  }
+
+  /// Writes lines wrapped to the given width, returning the newlines used.
+  int writeLines(String text, int width) {
+    var lines = 0;
+    for (var line in text.split('\n')) {
+      var wrapped = wrapString(line, width);
+      lines += wrapped.split('\n').length;
+      console.writeLine(wrapped);
+    }
+    return lines;
   }
 }
 
@@ -140,7 +153,7 @@ List<FormattedString> wrapFormattedStringList(List<FormattedString> strings, int
   return formatted;
 }
 
-List<String> wrapStringList(String string, int width, [int prefixChars = 0]) {
+List<String> wrapStringList(String string, int width, [int prefixChars = 0, bool trim = true]) {
   // No newline splitting is intentional
   var splitWords = string
       .split(' ')
@@ -174,12 +187,15 @@ List<String> wrapStringList(String string, int width, [int prefixChars = 0]) {
     doneLines.add(currLine);
   }
 
-  return doneLines.map((e) => e.trim()).toList();
+  return doneLines.map((e) => trim ? e.trim() : e.trimLeft()).toList();
 }
 
-String wrapString(String string, int width, [int prefixChars = 0]) {
-  var doneLines = wrapStringList(string, width, prefixChars);
-  var str = doneLines.first.trim();
+String wrapString(String string, int width, [int prefixChars = 0, bool trim = true]) {
+  var doneLines = wrapStringList(string, width, prefixChars, trim);
+  var str = doneLines.first;
+  if (trim) {
+    str = str.trim();
+  }
   if (doneLines.length > 1) {
     str += '\n${doneLines.skip(1).map((line) => '${' ' * prefixChars}${line.trim()}').join('\n')}';
   }

@@ -1,4 +1,7 @@
 import 'package:dart_console/dart_console.dart';
+import 'package:uuid/uuid.dart';
+
+const uuid = Uuid();
 
 extension CoordinateExtension on Coordinate {
   Coordinate copy({int row, int col}) => Coordinate(row ?? this.row, col ?? this.col);

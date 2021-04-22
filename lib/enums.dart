@@ -1,3 +1,5 @@
+import 'package:ondemand/ondemand.dart';
+
 import 'console/logic.dart';
 import 'console/time_handler.dart';
 
@@ -16,6 +18,14 @@ class OrderPlaceTime {
 
   const OrderPlaceTime.fromTime(this.time)
       : display = null;
+
+  ScheduleTime toScheduleTime() {
+    if (this == ASAP) {
+      return null;
+    }
+
+    return ScheduleTime(startTime: '${time.start}', endTime: '${time.end}');
+  }
 
   @override
   bool operator ==(Object other) =>

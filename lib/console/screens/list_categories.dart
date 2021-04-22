@@ -38,7 +38,7 @@ class ListCategories extends Navigation {
     var category = await tile.showFuture();
 
     context.breadcrumb.trailAdd(category.name);
-    return navigator.routeToName('list_items', {'category': category, 'menuResponse': menuResponse});
+    return navigator.routeToName('list_items', {'category': category, 'menuResponse': menuResponse, 'kitchen': kitchenSelector});
   }
 
   @override

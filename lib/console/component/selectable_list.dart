@@ -194,7 +194,8 @@ class SelectableList<T> {
       console.write('] ');
       console.resetColorAttributes();
 
-      var wrapped = wrapString(value.display(), width, 4);
+      // TODO: Allow for formatting!
+      var wrapped = wrapString(optionManager.displayFormattedString(value).map((e) => e.value).join('\n'), width, 4);
       console.write(wrapped);
       console.writeLine();
 

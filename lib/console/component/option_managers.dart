@@ -11,6 +11,9 @@ class DefaultOptionManager<T> with OptionManager<T> {
   const DefaultOptionManager();
 
   @override
+  String displayString(Option<T> option) => '${option.value}';
+
+  @override
   bool isSelectable(T _) => true;
 }
 
