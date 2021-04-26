@@ -44,7 +44,8 @@ class TimeSelection extends Navigation {
         autoSelect: true,
         scrollAfter: 15);
 
-    var time = await timeSelect.displayOneFuture();
+    var time = await timeSelect.displayOne();
+    print('time = $time');
     timeSelect.destroy();
 
     context.breadcrumb.trailPop();

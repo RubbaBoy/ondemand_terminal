@@ -83,19 +83,15 @@ class TiledSelection<T> with Destroyable {
         containerWidth, tileWidth, tileHeight, borderColor, selectedColor);
   }
 
-  Future<T> showFuture() {
-    final completer = Completer<T>();
-    show(completer.complete);
-    return completer.future;
-  }
-
-  void show(void Function(T) callback) {
+  Future<T> display() async {
     _redisplay();
 
     // coords of the tile
     var x = index % tileXCount;
     var y = (index / tileXCount).floor();
-    inputLoop.listen((key) {
+
+    var completer = Completer<T>();
+    await inputLoop.listen((key) {
       if (key.controlChar == ControlCharacter.arrowUp) {
         y--;
       } else if (key.controlChar == ControlCharacter.arrowDown) {
@@ -111,7 +107,7 @@ class TiledSelection<T> with Destroyable {
         }
 
         destroy();
-        callback(current.value);
+        completer.complete(current.value);
         return false;
       } else if (key.controlChar == ControlCharacter.ctrlC) {
         close(console, 'Terminal closed by user');
@@ -158,6 +154,8 @@ class TiledSelection<T> with Destroyable {
       _redisplay();
       return true;
     });
+
+    return completer.future;
   }
 
   @override

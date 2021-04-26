@@ -2,17 +2,23 @@ import 'dart:async';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:ondemand_terminal/console.dart';
+import 'package:ondemand_terminal/console/event_loop.dart';
 import 'package:ondemand_terminal/console/input_loop.dart';
+import 'package:ondemand_terminal/console/loop/event.dart';
 
 typedef NavCreator = Navigation Function();
 
-class Navigator {
+class Navigator extends Event {
   final _history = <_HistoryEntry>[];
   final _routes = <String, NavCreator>{};
 
   final Context context;
 
-  Navigator(this.context, InputLoop inputLoop) {
+  /// The next nav item to process in [#tick()].
+  NavItem nextItem;
+
+  Navigator(this.context, InputLoop inputLoop, EventLoop eventLoop) {
+    eventLoop.addEvent(this);
     inputLoop.addAdditionalListener((key) {
       if (key.controlChar == ControlCharacter.end && canGoBack()) {
         goBack();
@@ -31,23 +37,23 @@ class Navigator {
   /// Routes to a named route set by [addRoute(String, Navigation)].
   /// Before the route is shown, the cursor position is reset to
   /// [Context#startContent]
-  FutureOr<dynamic> routeToName(String name, [Map<String, dynamic> payload]) =>
+  Future<dynamic> routeToName(String name, [Map<String, dynamic> payload]) =>
       routeTo(_routes[name](), payload);
 
   /// Routes to an arbitrary [Navigation].
   /// Before the route is shown, the cursor position is reset to
   /// [Context#startContent]
-  FutureOr<dynamic> routeTo(Navigation navigation, [Map<String, dynamic> payload]) {
-    _history.add(_HistoryEntry(navigation, payload));
-    navigation.initialNav(payload);
-    context.console.console.cursorPosition = context.startContent;
-    var result = navigation.display(payload);
-    if (result is Future) {
-      result.whenComplete(() => _history.removeLast());
-    } else {
-      _history.removeLast();
+  Future<dynamic> routeTo(Navigation navigation,
+      [Map<String, dynamic> payload]) {
+    var entry = _HistoryEntry(
+        navigation, payload, () => _history.removeLast());
+    try {
+      _history.add(entry);
+      return entry._completer.future;
+    } finally {
+      // We do NOT want this happening before the future!
+      nextItem = entry;
     }
-    return result;
   }
 
   /// Checks if [#goBack()] should do anything.
@@ -56,25 +62,87 @@ class Navigator {
   /// Goes back in history, to the previous navigation AND payload.
   void goBack() {
     if (canGoBack()) {
-      context.console.console.cursorPosition = context.startContent;
-      _history
-          .removeLast()
-          .navigation
-          .destroy();
-      context.console.console.cursorPosition = context.startContent;
-
-      _history.last.redisplay();
+      nextItem = NavItem.GoBack;
     }
+  }
+
+  void _goBack() {
+    context.console.console.cursorPosition = context.startContent;
+    _history.removeLast().destroy();
+
+    context.console.console.cursorPosition = context.startContent;
+    _history.last.redisplay();
+  }
+
+  @override
+  void tick() {
+    if (nextItem == null) {
+      return;
+    }
+
+    if (nextItem.action == NavAction.GoBack) {
+      _goBack();
+      nextItem = null;
+      return;
+    }
+
+    context.console.console.cursorPosition = context.startContent;
+    var item = nextItem as _HistoryEntry;
+    item.display();
+
+    nextItem = null;
   }
 }
 
-class _HistoryEntry {
+enum NavAction {
+  /// Navigating to a specific page
+  NavTo,
+
+  /// Going back in history
+  GoBack
+}
+
+class NavItem {
+  static const GoBack = NavItem(NavAction.GoBack);
+
+  final NavAction action;
+
+  const NavItem(this.action);
+
+  @override
+  String toString() => 'NavItem[$action]';
+}
+
+class _HistoryEntry extends NavItem {
   final Navigation navigation;
   final Map<String, dynamic> payload;
+  final Function onExit;
+  Completer _completer = Completer();
 
-  _HistoryEntry(this.navigation, this.payload);
+  /// [onExit] is meant for removing it from the history, invoked when the
+  /// display method is finished (or it is backed out).
+  _HistoryEntry(this.navigation, this.payload, this.onExit)
+      : super(NavAction.NavTo);
 
-  void redisplay() => navigation.display(payload);
+  Future<dynamic> display() {
+    navigation.initialNav(payload);
+    redisplay();
+    return _completer.future;
+  }
+
+  void destroy() {
+    navigation.destroy();
+    _completer.completeError(BackException());
+  }
+
+  void redisplay() {
+    Future.value(navigation.display(payload))
+      .then((v) {
+        _completer.complete(v);
+        _completer = null;
+      })
+      .whenComplete(() => onExit());
+  }
 }
 
 abstract class Navigation {
@@ -93,4 +161,21 @@ abstract class Navigation {
   /// Clears the screen and resets the cursor. Only called if [#display()] has
   /// not been completed.
   void destroy();
+
+  Future<T> waitFor<T>(ComponentValue<T> value) {
+    if (!value.hasValue) {
+
+    }
+  }
 }
+
+class ComponentValue<T> {
+  /// If the value was retrieved. If false, it was probably backed out of.
+  final bool hasValue;
+
+  final T value;
+
+  ComponentValue(this.hasValue, this.value);
+}
+
+class BackException {}

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:cli';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:meta/meta.dart';
@@ -84,20 +85,14 @@ class SelectableList<T> with Destroyable {
     return SelectableList._(console, inputLoop, position, optionManager, width, scrollAfter, _items, lowerDescription, upperDescription, multi, min, max, autoSelect, _scrolling, _scrollTo);
   }
 
-  Future<T> displayOneFuture() {
-    final completer = Completer<T>();
-    displayOne(completer.complete);
-    return completer.future;
-  }
-
-  /// Same as [#display(void Function(List<T>))] but only takes the first
-  /// element from the callback (or null).
-  void displayOne(void Function(T) callback) =>
-      display((list) => callback(list.isEmpty ? null : list.first));
+  /// Same as [#display(void Function())] but only takes the first
+  /// element from the result (or null).
+  Future<T> displayOne() =>
+      display().then((list) => list.isEmpty ? null : list.first);
 
   /// Displays the list, and when everything is selected, [callback] is invoked
   /// once.
-  void display(void Function(List<T> selected) callback) {
+  Future<List<T>> display() async {
     _redisplay();
 
     /// 0 is no wrapping occurred
@@ -132,7 +127,7 @@ class SelectableList<T> with Destroyable {
       return false;
     }
 
-    inputLoop.listen((key) {
+    await inputLoop.listen((key) {
       if (key.controlChar == ControlCharacter.arrowUp) {
         index--;
         if (!processWrapIndex() && scrolling && index + 1== scrollFrom) {
@@ -173,7 +168,7 @@ class SelectableList<T> with Destroyable {
       return true;
     });
 
-    callback(getSelected().map((option) => option.value).toList());
+    return getSelected().map((option) => option.value).toList();
   }
 
   @override

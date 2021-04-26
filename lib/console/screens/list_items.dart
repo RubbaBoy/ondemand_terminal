@@ -51,7 +51,7 @@ class ListItems extends Navigation {
       containerWidth: context.mainPanelWidth,
     );
 
-    var item = await tile.showFuture();
+    var item = await tile.display();
 
     // If childGroups is FILLED, do get_item request (childGroups#id is the id of something idk)
     List<SelectedModifiers> modifiers;

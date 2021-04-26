@@ -40,7 +40,7 @@ class ListPlaces extends Navigation {
       containerWidth: context.mainPanelWidth,
     );
 
-    var kitchenSelector = await tile.showFuture();
+    var kitchenSelector = await tile.display();
 
     context.breadcrumb.trailPop();
 

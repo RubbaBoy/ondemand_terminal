@@ -9,6 +9,7 @@ import 'package:ondemand/get_revenue_category.dart';
 import 'package:ondemand/ondemand.dart';
 import 'package:ondemand/get_menus.dart' as _get_menus;
 import 'package:ondemand/get_items.dart' as _get_items;
+import 'package:ondemand_terminal/console/event_loop.dart';
 import 'package:ondemand_terminal/console/history.dart';
 import 'package:ondemand_terminal/console/input_loop.dart';
 import 'package:ondemand_terminal/console/screens/item_option.dart';
@@ -99,7 +100,10 @@ class OnDemandConsole {
 
     await submitTask(init());
 
+    var eventLoop = EventLoop(console);
+
     var inputLoop = InputLoop(console);
+    eventLoop.addEvent(inputLoop);
 
     inputLoop.addAdditionalListener((key) {
       if (key.controlChar == ControlCharacter.ctrlC) {
@@ -111,7 +115,7 @@ class OnDemandConsole {
 
     var context = Context(this, logic, inputLoop, breadcrumb, mainPanelWidth, startContent);
 
-    final nav = Navigator(context, inputLoop);
+    final nav = Navigator(context, inputLoop, eventLoop);
     nav.addRoute('welcome', () => Welcome(nav, context));
     nav.addRoute('time_selection', () => TimeSelection(nav, context));
     nav.addRoute('list_places', () => ListPlaces(nav, context));
@@ -119,6 +123,8 @@ class OnDemandConsole {
     nav.addRoute('list_items', () => ListItems(nav, context));
     nav.addRoute('item_option', () => ItemOption(nav, context));
     nav.addRoute('order_finalize', () => OrderFinalize(nav, context));
+
+    eventLoop.init();
 
     await nav.routeToName('welcome');
 

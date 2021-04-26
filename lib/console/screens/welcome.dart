@@ -49,7 +49,7 @@ To select menu items, use arrow keys to navigate, space to select, and enter to 
         multi: false,
         autoSelect: true);
 
-    var time = await placeTime.displayOneFuture();
+    var time = await placeTime.displayOne();
     placeTime.destroy();
 
     context.console.console.cursorPosition = timePosition;

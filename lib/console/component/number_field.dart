@@ -56,18 +56,12 @@ class NumberField with Destroyable {
       int initialValue = 0})
     : _value = initialValue;
 
-  Future<int> displayFuture() {
-    final completer = Completer<int>();
-    display(completer.complete);
-    return completer.future;
-  }
-
   /// Displays the list, and when everything is selected, [callback] is invoked
   /// once.
-  void display(void Function(int value) callback) {
+  Future<int> display() async {
     _redisplay();
 
-    inputLoop.listen((key) {
+    await inputLoop.listen((key) {
       if (key.controlChar == ControlCharacter.backspace) {
         _value = (_value / 10).floor();
       } else if (key.controlChar == ControlCharacter.ctrlH) { // Ctrl + Backspace
@@ -87,7 +81,7 @@ class NumberField with Destroyable {
       return true;
     }, breakOn: [ControlCharacter.enter]);
 
-    callback(_value);
+    return _value;
   }
 
   @override

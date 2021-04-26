@@ -69,7 +69,7 @@ class ItemOption extends Navigation {
         max: childGroup.maximum,
         autoSelect: !multi);
 
-    var selectedItem = await currentList.displayOneFuture();
+    var selectedItem = await currentList.displayOne();
     currentList.destroy();
 
     return selectedItem != null ? modifierFromItem(childGroup, selectedItem) : null;

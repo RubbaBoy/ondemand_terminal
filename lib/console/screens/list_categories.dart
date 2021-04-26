@@ -41,7 +41,7 @@ class ListCategories extends Navigation {
       containerWidth: context.mainPanelWidth,
     );
 
-    var category = await tile.showFuture();
+    var category = await tile.display();
 
     return navigator.routeToName('list_items', {'category': category, 'menuResponse': menuResponse, 'kitchen': kitchenSelector});
   }

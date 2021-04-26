@@ -49,7 +49,7 @@ class OrderFinalize extends Navigation {
         position: timePosition,
         width: context.mainPanelWidth,
         upperDescription: 'List any allergies:');
-    var allergies = await allergyField.displayFuture();
+    var allergies = await allergyField.display();
 
     var field = current = NumberField(
         console: console,
@@ -57,7 +57,7 @@ class OrderFinalize extends Navigation {
         position: timePosition,
         width: context.mainPanelWidth,
         upperDescription: 'Count:');
-    var count = await field.displayFuture();
+    var count = await field.display();
 
     // Clear the top text too
     clearView(console, timePosition, context.mainPanelWidth, lineHeight + 1);

@@ -45,18 +45,12 @@ class TextField with Destroyable {
       this.upperDescription,
       this.lowerDescription});
 
-  Future<String> displayFuture() {
-    final completer = Completer<String>();
-    display(completer.complete);
-    return completer.future;
-  }
-
-  /// Displays the list, and when everything is selected, [callback] is invoked
-  /// once.
-  void display(void Function(String text) callback) {
+  /// Displays the text field, and when Enter is pressed the text result is
+  /// returned.
+  Future<String> display() async {
     _redisplay();
 
-    inputLoop.listen((key) {
+    await inputLoop.listen((key) {
       if (key.controlChar == ControlCharacter.ctrlC) {
         close(console, 'Terminal closed by user');
       } else if (key.controlChar == ControlCharacter.backspace) {
@@ -80,7 +74,7 @@ class TextField with Destroyable {
       return true;
     }, breakOn: [ControlCharacter.enter]);
 
-    callback(_text);
+    return _text;
   }
 
   @override
