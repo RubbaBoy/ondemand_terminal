@@ -25,6 +25,7 @@ class Breadcrumb {
 
   void update() {
     console.cursorPosition = position;
+    console.eraseLine();
 
     trail.forEachI((i, item) {
       if (i != 0) {

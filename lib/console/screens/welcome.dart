@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:ondemand_terminal/console.dart';
@@ -27,9 +28,10 @@ class Welcome extends Navigation {
         super(navigator, context);
 
   @override
-  FutureOr<void> display(Map<String, dynamic> payload) async {
-    context.breadcrumb.trailAdd('Welcome');
+  void initialNav(_) => context.breadcrumb.trailAdd('Welcome');
 
+  @override
+  FutureOr<void> display(Map<String, dynamic> payload) async {
     lineHeight = base.writeLines(
         '''Welcome to the RIT OnDemand Terminal! The goal of this is to fully utilize the RIT OnDemand through the familiarity of your terminal.
 To select menu items, use arrow keys to navigate, space to select, and enter to finalize. Press End to go back a page.''',
@@ -52,9 +54,14 @@ To select menu items, use arrow keys to navigate, space to select, and enter to 
 
     context.console.console.cursorPosition = timePosition;
 
+    print('1time= $time');
     if (time == OrderPlaceTime.FIND) {
-      time = await showTimes(timePosition);
+      time = await navigator.routeToName('time_selection', {'position': timePosition});
     }
+
+    print('2time = $time');
+
+    exit(0);
 
     // Clear the top text too
     clearView(console, timePosition, context.mainPanelWidth, lineHeight + 1);
@@ -63,28 +70,6 @@ To select menu items, use arrow keys to navigate, space to select, and enter to 
     console.cursorPosition = timePosition;
 
     return navigator.routeToName('list_places', {'time': time});
-  }
-
-  Future<OrderPlaceTime> showTimes(Coordinate position) async {
-    final completer = Completer<OrderTime>();
-    var times = await base.submitTask(logic.getOrderTimes());
-
-    var timeSelect = current = SelectableList<OrderTime>(
-        console: console,
-        inputLoop: context.inputLoop,
-        position: position,
-        upperDescription: 'Please select a time for your order:',
-        width: context.mainPanelWidth,
-        items: times,
-        multi: false,
-        autoSelect: true,
-        scrollAfter: 15);
-
-    var time = await timeSelect.displayOneFuture();
-    timeSelect.destroy();
-    completer.complete(time);
-
-    return completer.future.then((time) => OrderPlaceTime.fromTime(time));
   }
 
   @override

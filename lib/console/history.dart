@@ -39,8 +39,15 @@ class Navigator {
   /// [Context#startContent]
   FutureOr<dynamic> routeTo(Navigation navigation, [Map<String, dynamic> payload]) {
     _history.add(_HistoryEntry(navigation, payload));
+    navigation.initialNav(payload);
     context.console.console.cursorPosition = context.startContent;
-    return navigation.display(payload);
+    var result = navigation.display(payload);
+    if (result is Future) {
+      result.whenComplete(() => _history.removeLast());
+    } else {
+      _history.removeLast();
+    }
+    return result;
   }
 
   /// Checks if [#goBack()] should do anything.
@@ -49,11 +56,13 @@ class Navigator {
   /// Goes back in history, to the previous navigation AND payload.
   void goBack() {
     if (canGoBack()) {
+      context.console.console.cursorPosition = context.startContent;
       _history
           .removeLast()
           .navigation
           .destroy();
       context.console.console.cursorPosition = context.startContent;
+
       _history.last.redisplay();
     }
   }
@@ -72,14 +81,16 @@ abstract class Navigation {
   final Navigator navigator;
   final Context context;
 
-  /// If you can go back from the current navigation
-  final bool backable;
+  Navigation(this.navigator, this.context);
 
-  Navigation(this.navigator, this.context, [this.backable = true]);
+  /// Invoked only if directly navigated to the page, not going back in history
+  /// leading to here. This is primarily used for breadcrumbs.
+  void initialNav(Map<String, dynamic> payload) {}
 
   /// Displays the current page
   FutureOr<dynamic> display(Map<String, dynamic> payload);
 
-  /// Clears the screen and resets the cursor
+  /// Clears the screen and resets the cursor. Only called if [#display()] has
+  /// not been completed.
   void destroy();
 }

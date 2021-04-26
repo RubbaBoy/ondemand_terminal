@@ -21,14 +21,15 @@ class ListPlaces extends Navigation {
         super(navigator, context);
 
   @override
+  void initialNav(_) => context.breadcrumb.trailAdd('Kitchen Select');
+
+  @override
   Future<void> display(Map<String, dynamic> payload) async {
     var time = payload['time'] as OrderPlaceTime;
 
-    context.breadcrumb.trailAdd('Kitchen Select');
-
     var kitchens = await base.submitTask(logic.getKitchens());
 
-    var tile = TiledSelection<KitchenSelector>(
+    tile = TiledSelection<KitchenSelector>(
       console: base.console,
       inputLoop: context.inputLoop,
       position: context.startContent,
@@ -41,13 +42,15 @@ class ListPlaces extends Navigation {
 
     var kitchenSelector = await tile.showFuture();
 
-      context.breadcrumb
-        ..trailPop()
-        ..trailAdd(kitchenSelector.kitchen.name);
+    context.breadcrumb.trailPop();
 
-      return navigator.routeToName('list_categories', {'kitchen': kitchenSelector});
+    return navigator
+        .routeToName('list_categories', {'kitchen': kitchenSelector});
   }
 
   @override
-  void destroy() async => tile.destroy();
+  void destroy() async {
+    tile.destroy();
+    context.breadcrumb.trailPop();
+  }
 }

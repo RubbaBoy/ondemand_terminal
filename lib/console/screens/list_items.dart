@@ -28,6 +28,10 @@ class ListItems extends Navigation {
         super(navigator, context);
 
   @override
+  void initialNav(Map<String, dynamic> payload) =>
+      context.breadcrumb.trailAdd(payload['category'].name);
+
+  @override
   FutureOr<void> display(Map<String, dynamic> payload) async {
     var category = payload['category'] as Categories;
     var kitchenSelector = payload['kitchen'] as KitchenSelector;
@@ -67,7 +71,10 @@ class ListItems extends Navigation {
   }
 
   @override
-  void destroy() => tile.destroy();
+  void destroy() {
+    context.breadcrumb.trailPop();
+    tile.destroy();
+  }
 
   Item foodItemToItem(_get_items.FoodItem item,
       List<SelectedModifiers> selectedModifiers, int count, String allergies) {

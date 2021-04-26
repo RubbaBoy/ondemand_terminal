@@ -22,6 +22,10 @@ class ListCategories extends Navigation {
         super(navigator, context);
 
   @override
+  void initialNav(Map<String, dynamic> payload) =>
+      context.breadcrumb.trailAdd(payload['kitchen'].kitchen.name);
+
+  @override
   FutureOr<void> display(Map<String, dynamic> payload) async {
     var kitchenSelector = payload['kitchen'] as KitchenSelector;
 
@@ -39,10 +43,12 @@ class ListCategories extends Navigation {
 
     var category = await tile.showFuture();
 
-    context.breadcrumb.trailAdd(category.name);
     return navigator.routeToName('list_items', {'category': category, 'menuResponse': menuResponse, 'kitchen': kitchenSelector});
   }
 
   @override
-  void destroy() => tile.destroy();
+  void destroy() {
+    tile.destroy();
+    context.breadcrumb.trailPop();
+  }
 }

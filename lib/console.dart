@@ -16,6 +16,7 @@ import 'package:ondemand_terminal/console/screens/list_categories.dart';
 import 'package:ondemand_terminal/console/screens/list_items.dart';
 import 'package:ondemand_terminal/console/screens/list_places.dart';
 import 'package:ondemand_terminal/console/screens/order_finalize.dart';
+import 'package:ondemand_terminal/console/screens/time_selection.dart';
 import 'package:ondemand_terminal/console/screens/welcome.dart';
 
 import 'console/breadcrumb.dart';
@@ -112,6 +113,7 @@ class OnDemandConsole {
 
     final nav = Navigator(context, inputLoop);
     nav.addRoute('welcome', () => Welcome(nav, context));
+    nav.addRoute('time_selection', () => TimeSelection(nav, context));
     nav.addRoute('list_places', () => ListPlaces(nav, context));
     nav.addRoute('list_categories', () => ListCategories(nav, context));
     nav.addRoute('list_items', () => ListItems(nav, context));
