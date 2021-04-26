@@ -30,6 +30,7 @@ class ListPlaces extends Navigation {
 
     var tile = TiledSelection<KitchenSelector>(
       console: base.console,
+      inputLoop: context.inputLoop,
       position: context.startContent,
       items: kitchens.map((e) => KitchenSelector(e, time)).toList(),
       optionManager: const KitchenOptionManager(),

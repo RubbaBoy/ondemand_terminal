@@ -1,9 +1,8 @@
 import 'dart:async';
 
-import 'package:ondemand/get_kitchens.dart';
+import 'package:dart_console/dart_console.dart';
 import 'package:ondemand_terminal/console.dart';
-import 'package:ondemand_terminal/console/breadcrumb.dart';
-import 'package:ondemand_terminal/console/logic.dart';
+import 'package:ondemand_terminal/console/input_loop.dart';
 
 typedef NavCreator = Navigation Function();
 
@@ -13,7 +12,16 @@ class Navigator {
 
   final Context context;
 
-  Navigator(this.context);
+  Navigator(this.context, InputLoop inputLoop) {
+    inputLoop.addAdditionalListener((key) {
+      if (key.controlChar == ControlCharacter.end && canGoBack()) {
+        goBack();
+        return false;
+      }
+
+      return true;
+    });
+  }
 
   /// Adds an available named route, to be directed to via [routeToName(String)].
   void addRoute(String name, NavCreator navCreator) {
@@ -35,10 +43,16 @@ class Navigator {
     return navigation.display(payload);
   }
 
+  /// Checks if [#goBack()] should do anything.
+  bool canGoBack() => _history.length > 1;
+
   /// Goes back in history, to the previous navigation AND payload.
   void goBack() {
-    if (_history.length > 1) {
-      _history.removeLast().navigation.destroy();
+    if (canGoBack()) {
+      _history
+          .removeLast()
+          .navigation
+          .destroy();
       context.console.console.cursorPosition = context.startContent;
       _history.last.redisplay();
     }
@@ -58,7 +72,10 @@ abstract class Navigation {
   final Navigator navigator;
   final Context context;
 
-  Navigation(this.navigator, this.context);
+  /// If you can go back from the current navigation
+  final bool backable;
+
+  Navigation(this.navigator, this.context, [this.backable = true]);
 
   /// Displays the current page
   FutureOr<dynamic> display(Map<String, dynamic> payload);

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:ondemand/base.dart';
+import 'package:ondemand/get_items.dart' as _get_items;
 import 'package:ondemand/helper/kitchen_helper.dart';
 import 'package:ondemand/ondemand.dart';
 import 'package:ondemand_terminal/console.dart';
@@ -10,7 +11,7 @@ import 'package:ondemand_terminal/console/component/tiled_selection.dart';
 import 'package:ondemand_terminal/console/console_util.dart';
 import 'package:ondemand_terminal/console/history.dart';
 import 'package:ondemand_terminal/console/logic.dart';
-import 'package:ondemand/get_items.dart' as _get_items;
+import 'package:ondemand_terminal/console/screens/order_finalize.dart';
 import 'package:ondemand_terminal/extensions.dart';
 
 class ListItems extends Navigation {
@@ -32,9 +33,13 @@ class ListItems extends Navigation {
     var kitchenSelector = payload['kitchen'] as KitchenSelector;
     var menuResponse = payload['menuResponse'] as MenuResponse;
 
-    var items = await base.submitTask(logic.getItems(menuResponse.place, category));
+    var items =
+        await base.submitTask(logic.getItems(menuResponse.place, category));
 
-    tile = TiledSelection<_get_items.FoodItem>(console: console, position: context.startContent,
+    tile = TiledSelection<_get_items.FoodItem>(
+      console: console,
+      inputLoop: context.inputLoop,
+      position: context.startContent,
       items: items,
       optionManager: StringOptionManager((option) => option.value.displayText),
       tileWidth: (context.mainPanelWidth / 4).floor(),
@@ -47,17 +52,25 @@ class ListItems extends Navigation {
     // If childGroups is FILLED, do get_item request (childGroups#id is the id of something idk)
     List<SelectedModifiers> modifiers;
     if (item.childGroups.isNotEmpty) {
-      modifiers = (await navigator.routeToName('item_option', {'item': item})) as List<SelectedModifiers>;
-      print('modifiers: ${modifiers.map((e) => e.toJson()).join('\n')}');
+      modifiers = (await navigator.routeToName('item_option', {'item': item}))
+          as List<SelectedModifiers>;
     }
 
-    await logic.addItemToOrder(kitchenSelector.kitchen, null, kitchenSelector.time);
+    var finalizeResult = (await navigator
+        .routeToName('order_finalize', {'item': item})) as OrderFinalizeResult;
+
+    await logic.addItemToOrder(
+        kitchenSelector.kitchen,
+        foodItemToItem(
+            item, modifiers, finalizeResult.count, finalizeResult.allergies),
+        kitchenSelector.time);
   }
 
   @override
   void destroy() => tile.destroy();
 
-  Item foodItemToItem(_get_items.FoodItem item, List<SelectedModifiers> selectedModifiers, int count, String allergies) {
+  Item foodItemToItem(_get_items.FoodItem item,
+      List<SelectedModifiers> selectedModifiers, int count, String allergies) {
     var guid = '${item.id}-${DateTime.now().millisecondsSinceEpoch}';
     return Item(
       id: item.id,
@@ -107,10 +120,13 @@ class ListItems extends Navigation {
       quantity: count,
       selectedModifiers: selectedModifiers,
       splInstruction: allergies,
-      modifierTotal: selectedModifiers.map((e) => e.amount?.parseInt() ?? 0).reduce((a, b) => a + b), // TODO: Unsure if `amount` is right
+      modifierTotal: selectedModifiers
+          .map((e) => e.amount?.parseInt() ?? 0)
+          .reduce((a, b) => a + b),
+      // TODO: Unsure if `amount` is right
       mealPeriodId: null,
       uniqueId: guid,
       cartItemId: uuid.v4(), // TODO: I think this is auto generated?
-  );
+    );
   }
 }

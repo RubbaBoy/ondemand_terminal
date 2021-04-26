@@ -10,10 +10,12 @@ import 'package:ondemand/ondemand.dart';
 import 'package:ondemand/get_menus.dart' as _get_menus;
 import 'package:ondemand/get_items.dart' as _get_items;
 import 'package:ondemand_terminal/console/history.dart';
+import 'package:ondemand_terminal/console/input_loop.dart';
 import 'package:ondemand_terminal/console/screens/item_option.dart';
 import 'package:ondemand_terminal/console/screens/list_categories.dart';
 import 'package:ondemand_terminal/console/screens/list_items.dart';
 import 'package:ondemand_terminal/console/screens/list_places.dart';
+import 'package:ondemand_terminal/console/screens/order_finalize.dart';
 import 'package:ondemand_terminal/console/screens/welcome.dart';
 
 import 'console/breadcrumb.dart';
@@ -96,14 +98,25 @@ class OnDemandConsole {
 
     await submitTask(init());
 
-    var context = Context(this, logic, breadcrumb, mainPanelWidth, startContent);
+    var inputLoop = InputLoop(console);
 
-    final nav = Navigator(context);
+    inputLoop.addAdditionalListener((key) {
+      if (key.controlChar == ControlCharacter.ctrlC) {
+        close(console, 'Terminal closed by user');
+        return false;
+      }
+      return true;
+    });
+
+    var context = Context(this, logic, inputLoop, breadcrumb, mainPanelWidth, startContent);
+
+    final nav = Navigator(context, inputLoop);
     nav.addRoute('welcome', () => Welcome(nav, context));
     nav.addRoute('list_places', () => ListPlaces(nav, context));
     nav.addRoute('list_categories', () => ListCategories(nav, context));
     nav.addRoute('list_items', () => ListItems(nav, context));
     nav.addRoute('item_option', () => ItemOption(nav, context));
+    nav.addRoute('order_finalize', () => OrderFinalize(nav, context));
 
     await nav.routeToName('welcome');
 
@@ -137,11 +150,12 @@ class OnDemandConsole {
 class Context {
   final OnDemandConsole console;
   final OnDemandLogic logic;
+  final InputLoop inputLoop;
   final Breadcrumb breadcrumb;
   final int mainPanelWidth;
   final Coordinate startContent;
 
-  Context(this.console, this.logic, this.breadcrumb, this.mainPanelWidth, this.startContent);
+  Context(this.console, this.logic, this.inputLoop, this.breadcrumb, this.mainPanelWidth, this.startContent);
 }
 
 List<FormattedString> wrapFormattedStringList(List<FormattedString> strings, int width, [int prefixChars = 0]) {

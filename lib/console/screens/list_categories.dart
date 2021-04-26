@@ -27,7 +27,9 @@ class ListCategories extends Navigation {
 
     var menuResponse = await base.submitTask(logic.getMenu(kitchenSelector));
 
-    tile = TiledSelection<Categories>(console: console, position: context.startContent,
+    tile = TiledSelection<Categories>(console: console,
+      inputLoop: context.inputLoop,
+      position: context.startContent,
       items: menuResponse.menu.categories,
       optionManager: StringOptionManager((option) => option.value.name),
       tileWidth: (context.mainPanelWidth / 4).floor(),

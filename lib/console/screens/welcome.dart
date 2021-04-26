@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:ondemand_terminal/console.dart';
+import 'package:ondemand_terminal/console/component/destroyable.dart';
 import 'package:ondemand_terminal/console/component/number_field.dart';
 import 'package:ondemand_terminal/console/component/selectable_list.dart';
-import 'package:ondemand_terminal/console/component/text_field.dart';
 import 'package:ondemand_terminal/console/console_util.dart';
 import 'package:ondemand_terminal/console/history.dart';
 import 'package:ondemand_terminal/console/logic.dart';
@@ -16,8 +16,7 @@ class Welcome extends Navigation {
   final Console console;
   final OnDemandLogic logic;
 
-  SelectableList first;
-  SelectableList second;
+  Destroyable current;
   Coordinate timePosition;
   int lineHeight;
 
@@ -33,17 +32,14 @@ class Welcome extends Navigation {
 
     lineHeight = base.writeLines(
         '''Welcome to the RIT OnDemand Terminal! The goal of this is to fully utilize the RIT OnDemand through the familiarity of your terminal.
-To select menu items, use arrow keys to navigate, space to select, and enter to finalize.''',
+To select menu items, use arrow keys to navigate, space to select, and enter to finalize. Press End to go back a page.''',
         context.mainPanelWidth);
 
     timePosition = context.startContent.add(row: lineHeight + 1);
 
-    var field = NumberField(console: console, position: timePosition, width: 36, upperDescription: 'Insert some text:', lowerDescription: 'Press enter to continue');
-    var res = await field.displayFuture();
-    print('res = $res');
-
-    first = SelectableList<OrderPlaceTime>(
+    var placeTime = current = SelectableList<OrderPlaceTime>(
         console: console,
+        inputLoop: context.inputLoop,
         upperDescription: 'Please select a time for your order:',
         position: timePosition,
         width: context.mainPanelWidth,
@@ -51,8 +47,8 @@ To select menu items, use arrow keys to navigate, space to select, and enter to 
         multi: false,
         autoSelect: true);
 
-    var time = await first.displayOneFuture();
-    first.destroy();
+    var time = await placeTime.displayOneFuture();
+    placeTime.destroy();
 
     context.console.console.cursorPosition = timePosition;
 
@@ -73,8 +69,9 @@ To select menu items, use arrow keys to navigate, space to select, and enter to 
     final completer = Completer<OrderTime>();
     var times = await base.submitTask(logic.getOrderTimes());
 
-    second = SelectableList<OrderTime>(
+    var timeSelect = current = SelectableList<OrderTime>(
         console: console,
+        inputLoop: context.inputLoop,
         position: position,
         upperDescription: 'Please select a time for your order:',
         width: context.mainPanelWidth,
@@ -83,17 +80,16 @@ To select menu items, use arrow keys to navigate, space to select, and enter to 
         autoSelect: true,
         scrollAfter: 15);
 
-    second.displayOne((time) {
-      second.destroy();
-      completer.complete(time);
-    });
+    var time = await timeSelect.displayOneFuture();
+    timeSelect.destroy();
+    completer.complete(time);
 
     return completer.future.then((time) => OrderPlaceTime.fromTime(time));
   }
 
   @override
   void destroy() async {
-    (second ?? first).destroy();
+    current.destroy();
     clearView(console, timePosition, context.mainPanelWidth, lineHeight + 1);
   }
 }

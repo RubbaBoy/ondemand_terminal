@@ -3,11 +3,13 @@ import 'dart:math';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:meta/meta.dart';
+import 'package:ondemand_terminal/console/component/destroyable.dart';
+import 'package:ondemand_terminal/console/input_loop.dart';
 
 import '../../console.dart';
 import '../console_util.dart';
 
-class TextField {
+class TextField with Destroyable {
   static final WORD_BACKSPACE = RegExp(r'(.*\s+)([^\s]+)');
 
   final Coordinate position;
@@ -26,6 +28,8 @@ class TextField {
   /// The [Console] object.
   final Console console;
 
+  final InputLoop inputLoop;
+
   /// The active cursor position, used for resetting.
   Coordinate _cursor;
 
@@ -34,6 +38,7 @@ class TextField {
 
   TextField(
       {@required this.console,
+       @required this.inputLoop,
       this.position,
       this.width,
       this.maxLength,
@@ -51,11 +56,8 @@ class TextField {
   void display(void Function(String text) callback) {
     _redisplay();
 
-    Key key;
-    while ((key = console.readKey()) != null) {
-      if (key.controlChar == ControlCharacter.enter) {
-        break;
-      } else if (key.controlChar == ControlCharacter.ctrlC) {
+    inputLoop.listen((key) {
+      if (key.controlChar == ControlCharacter.ctrlC) {
         close(console, 'Terminal closed by user');
       } else if (key.controlChar == ControlCharacter.backspace) {
         _text = _text.substring(0, max(0, _text.length - 1));
@@ -75,11 +77,13 @@ class TextField {
       }
 
       _redisplay();
-    }
+      return true;
+    }, breakOn: [ControlCharacter.enter]);
 
     callback(_text);
   }
 
+  @override
   void destroy() =>
       clearView(console, _cursor, width, _cursor.row - position.row + 1);
 

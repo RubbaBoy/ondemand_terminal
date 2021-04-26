@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:meta/meta.dart';
+import 'package:ondemand_terminal/console/component/destroyable.dart';
+import 'package:ondemand_terminal/console/input_loop.dart';
 import '../console_util.dart';
 import 'dart:math' as math;
 
@@ -9,7 +11,7 @@ import '../../console.dart';
 import 'base.dart';
 import 'option_managers.dart';
 
-class SelectableList<T> {
+class SelectableList<T> with Destroyable {
 
   final Coordinate position;
 
@@ -45,6 +47,8 @@ class SelectableList<T> {
   /// The [Console] object.
   final Console console;
 
+  final InputLoop inputLoop;
+
   final OptionManager<T> optionManager;
 
   /// The list index the cursor is at
@@ -62,9 +66,10 @@ class SelectableList<T> {
   /// The bottom index
   int scrollTo = 0;
 
-  SelectableList._(this.console, this.position, this.optionManager, this.width, this.scrollAfter, this.items, this.lowerDescription, this.upperDescription, this.multi, this.min, this.max, this.autoSelect, this.scrolling, this.scrollTo);
+  SelectableList._(this.console, this.inputLoop, this.position, this.optionManager, this.width, this.scrollAfter, this.items, this.lowerDescription, this.upperDescription, this.multi, this.min, this.max, this.autoSelect, this.scrolling, this.scrollTo);
 
-  factory SelectableList({@required Console console, Coordinate position, OptionManager<T> optionManager, int width, int scrollAfter, @required List<T> items, String lowerDescription, String upperDescription, bool multi = true, int min = 0, int max = 1, bool autoSelect = false}) {
+  factory SelectableList({@required Console console,
+    @required InputLoop inputLoop, Coordinate position, OptionManager<T> optionManager, int width, int scrollAfter, @required List<T> items, String lowerDescription, String upperDescription, bool multi = true, int min = 0, int max = 1, bool autoSelect = false}) {
     optionManager ??= DefaultOptionManager<T>();
     var _items = items.map(optionManager.createOption).toList();
     scrollAfter ??= double.maxFinite.toInt();
@@ -76,7 +81,7 @@ class SelectableList<T> {
     var _scrolling = items.length > scrollAfter;
     var _scrollTo = math.min(items.length, scrollAfter);
 
-    return SelectableList._(console, position, optionManager, width, scrollAfter, _items, lowerDescription, upperDescription, multi, min, max, autoSelect, _scrolling, _scrollTo);
+    return SelectableList._(console, inputLoop, position, optionManager, width, scrollAfter, _items, lowerDescription, upperDescription, multi, min, max, autoSelect, _scrolling, _scrollTo);
   }
 
   Future<T> displayOneFuture() {
@@ -127,8 +132,7 @@ class SelectableList<T> {
       return false;
     }
 
-    Key key;
-    while ((key = console.readKey()) != null) {
+    inputLoop.listen((key) {
       if (key.controlChar == ControlCharacter.arrowUp) {
         index--;
         if (!processWrapIndex() && scrolling && index + 1== scrollFrom) {
@@ -159,18 +163,20 @@ class SelectableList<T> {
       } else if (key.controlChar == ControlCharacter.enter) {
         var selected = getSelected().length;
         if (selected >= min && selected <= max) {
-          break;
+          return false;
         }
       } else if (key.controlChar == ControlCharacter.ctrlC) {
         close(console, 'Terminal closed by user');
       }
 
       _redisplay();
-    }
+      return true;
+    });
 
     callback(getSelected().map((option) => option.value).toList());
   }
 
+  @override
   void destroy() => clearView(console, _cursor, width, _cursor.row - position.row + 1);
 
   int amountSelected() => getSelected().length;

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:dart_console/dart_console.dart';
+import 'package:ondemand_terminal/console/component/destroyable.dart';
+import 'package:ondemand_terminal/console/input_loop.dart';
 
 import '../../console.dart';
 import '../console_util.dart';
@@ -15,8 +17,10 @@ final BL_CORNER = '+';
 final HORI_EDGE = '-';
 final VERT_EDGE = '|';
 
-class TiledSelection<T> {
+class TiledSelection<T> with Destroyable {
   final Console console;
+
+  final InputLoop inputLoop;
 
   final Coordinate position;
 
@@ -48,6 +52,7 @@ class TiledSelection<T> {
 
   TiledSelection._(
       this.console,
+      this.inputLoop,
       this.position,
       this.items,
       this.optionManager,
@@ -63,6 +68,7 @@ class TiledSelection<T> {
   /// below text), ALL [tileHeight]s are adjusted.
   factory TiledSelection(
       {Console console,
+      InputLoop inputLoop,
       Coordinate position,
       List<T> items,
       OptionManager<T> optionManager,
@@ -73,7 +79,7 @@ class TiledSelection<T> {
       ConsoleColor selectedColor = ConsoleColor.brightGreen}) {
     var _items = items.map(optionManager.createOption).toList();
     _items.first.selected = true;
-    return TiledSelection._(console, position, _items, optionManager,
+    return TiledSelection._(console, inputLoop, position, _items, optionManager,
         containerWidth, tileWidth, tileHeight, borderColor, selectedColor);
   }
 
@@ -86,11 +92,10 @@ class TiledSelection<T> {
   void show(void Function(T) callback) {
     _redisplay();
 
-    Key key;
     // coords of the tile
     var x = index % tileXCount;
     var y = (index / tileXCount).floor();
-    while ((key = console.readKey()) != null) {
+    inputLoop.listen((key) {
       if (key.controlChar == ControlCharacter.arrowUp) {
         y--;
       } else if (key.controlChar == ControlCharacter.arrowDown) {
@@ -102,12 +107,12 @@ class TiledSelection<T> {
       } else if (key.controlChar == ControlCharacter.enter) {
         var current = getSelected().first;
         if (!current.selectable) {
-          continue;
+          return true;
         }
 
         destroy();
         callback(current.value);
-        break;
+        return false;
       } else if (key.controlChar == ControlCharacter.ctrlC) {
         close(console, 'Terminal closed by user');
       }
@@ -151,9 +156,11 @@ class TiledSelection<T> {
       }
 
       _redisplay();
-    }
+      return true;
+    });
   }
 
+  @override
   void destroy() =>
       clearView(console, _cursor, containerWidth, _cursor.row - position.row);
 

@@ -58,6 +58,7 @@ class ItemOption extends Navigation {
     var multi = !(childGroup.minimum == 1 && childGroup.maximum == 1);
     currentList = SelectableList<_get_item.ChildItems>(
         console: console,
+        inputLoop: context.inputLoop,
         upperDescription: 'Please select a time for your order:',
         optionManager: StringOptionManager((option) => option.value.displayText),
         position: coordinate,

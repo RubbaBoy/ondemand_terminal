@@ -3,12 +3,14 @@ import 'dart:math';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:meta/meta.dart';
+import 'package:ondemand_terminal/console/component/destroyable.dart';
+import 'package:ondemand_terminal/console/input_loop.dart';
 
 import '../../console.dart';
 import '../console_util.dart';
 import 'package:ondemand_terminal/extensions.dart';
 
-class NumberField {
+class NumberField with Destroyable {
   final Coordinate position;
 
   final int width;
@@ -32,6 +34,8 @@ class NumberField {
   /// The [Console] object.
   final Console console;
 
+  final InputLoop inputLoop;
+
   /// The active cursor position, used for resetting.
   Coordinate _cursor;
 
@@ -39,6 +43,7 @@ class NumberField {
 
   NumberField(
       {@required this.console,
+        @required this.inputLoop,
       this.position,
         this.width,
       this.minValue = 0,
@@ -62,13 +67,8 @@ class NumberField {
   void display(void Function(int value) callback) {
     _redisplay();
 
-    Key key;
-    while ((key = console.readKey()) != null) {
-      if (key.controlChar == ControlCharacter.enter) {
-        break;
-      } else if (key.controlChar == ControlCharacter.ctrlC) {
-        close(console, 'Terminal closed by user');
-      } else if (key.controlChar == ControlCharacter.backspace) {
+    inputLoop.listen((key) {
+      if (key.controlChar == ControlCharacter.backspace) {
         _value = (_value / 10).floor();
       } else if (key.controlChar == ControlCharacter.ctrlH) { // Ctrl + Backspace
         _value = 0;
@@ -84,11 +84,13 @@ class NumberField {
       _value = min(max(_value, minValue), maxValue);
 
       _redisplay();
-    }
+      return true;
+    }, breakOn: [ControlCharacter.enter]);
 
     callback(_value);
   }
 
+  @override
   void destroy() =>
       clearView(console, _cursor, width, _cursor.row - position.row + 1);
 
