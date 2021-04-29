@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:dart_console/dart_console.dart';
 import 'package:meta/meta.dart';
 import 'package:ondemand_terminal/console/component/destroyable.dart';
+import 'package:ondemand_terminal/console/history.dart';
 import 'package:ondemand_terminal/console/input_loop.dart';
 
 import '../../console.dart';
@@ -58,10 +59,10 @@ class NumberField with Destroyable {
 
   /// Displays the list, and when everything is selected, [callback] is invoked
   /// once.
-  Future<int> display() async {
+  Future<Optional<int>> display() async {
     _redisplay();
 
-    await inputLoop.listen((key) {
+    return inputLoop.listen((key) {
       if (key.controlChar == ControlCharacter.backspace) {
         _value = (_value / 10).floor();
       } else if (key.controlChar == ControlCharacter.ctrlH) { // Ctrl + Backspace
@@ -79,9 +80,8 @@ class NumberField with Destroyable {
 
       _redisplay();
       return true;
-    }, breakOn: [ControlCharacter.enter]);
-
-    return _value;
+    }, breakOn: [ControlCharacter.enter])
+        .componentValue(() => _value);
   }
 
   @override

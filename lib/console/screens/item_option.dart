@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dart_console/dart_console.dart';
+import 'package:intl/intl.dart';
 import 'package:ondemand/ondemand.dart';
 import 'package:ondemand_terminal/console.dart';
 import 'package:ondemand_terminal/console/component/option_managers.dart';
@@ -9,6 +10,7 @@ import 'package:ondemand_terminal/console/component/tiled_selection.dart';
 import 'package:ondemand_terminal/console/history.dart';
 import 'package:ondemand/get_items.dart' as _get_items;
 import 'package:ondemand/get_item.dart' as _get_item;
+import 'package:ondemand_terminal/console/input_loop.dart';
 import 'package:ondemand_terminal/console/logic.dart';
 import 'package:ondemand_terminal/console/console_util.dart';
 
@@ -69,7 +71,11 @@ class ItemOption extends Navigation {
         max: childGroup.maximum,
         autoSelect: !multi);
 
-    var selectedItem = await currentList.displayOne();
+    var selectedItemOptional = await currentList.displayOne();
+    if (selectedItemOptional.error) {
+      throw InputBreakException();
+    }
+    var selectedItem = selectedItemOptional.value;
     currentList.destroy();
 
     return selectedItem != null ? modifierFromItem(childGroup, selectedItem) : null;

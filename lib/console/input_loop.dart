@@ -10,12 +10,12 @@ typedef KeyCallback = bool Function(Key);
 @deprecated
 class InputLoop extends Event {
   final Console console;
-  final List<KeyCallback> _additionalListeners = [];
+  final _additionalListeners = <KeyCallback, Function>{};
 
   bool _listeningKeys = false;
   List<ControlCharacter> _breakOn = [];
   KeyCallback _keyCallback;
-  Completer _completer;
+  Completer<bool> _completer;
 
   InputLoop(this.console);
 
@@ -26,16 +26,27 @@ class InputLoop extends Event {
     _breakOn = breakOn;
     _keyCallback = keyCallback;
     _listeningKeys = true;
-    return (_completer = Completer()).future;
+    _completer = Completer<bool>.sync();
+    var c = Completer();
+
+    _completer.future.then((value) {
+      if (value) {
+        c.completeError(InputBreakException());
+      } else {
+        c.complete();
+      }
+    });
+
+    return c.future;
   }
 
   /// Adds an additional listener to be called whenever a key is typed and it
   /// is actively listening. Used by navigation.
-  void addAdditionalListener(KeyCallback callback) =>
-      _additionalListeners.add(callback);
+  void addAdditionalListener(KeyCallback callback, [Function after]) =>
+      _additionalListeners[callback] = after;
 
-  void _complete() {
-    _completer.complete();
+  void _complete([bool forceExit = false]) {
+    _completer.complete(forceExit);
     _listeningKeys = false;
   }
 
@@ -46,9 +57,10 @@ class InputLoop extends Event {
     }
 
     var key = console.readKey();
-    for (var listener in _additionalListeners) {
+    for (var listener in _additionalListeners.keys) {
       if (!listener(key)) {
-        _complete();
+        _complete(true); // TODO: Previously `true`
+        _additionalListeners[listener]?.call();
         return;
       }
     }
@@ -63,3 +75,5 @@ class InputLoop extends Event {
     }
   }
 }
+
+class InputBreakException {}

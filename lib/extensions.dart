@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:ondemand_terminal/console/history.dart';
+
 extension ListUtility<E> on Iterable<E> {
   void forEachI(void Function(int index, E element) action) {
     var i = 0;
@@ -24,7 +26,8 @@ extension StringUtils on String {
 
 extension SpecialIso on DateTime {
   String toIso8601StringNoMs() {
-    var y = (year >= -9999 && year <= 9999) ? _fourDigits(year) : _sixDigits(year);
+    var y =
+        (year >= -9999 && year <= 9999) ? _fourDigits(year) : _sixDigits(year);
     var m = _twoDigits(month);
     var d = _twoDigits(day);
     var h = _twoDigits(hour);
@@ -54,4 +57,10 @@ extension SpecialIso on DateTime {
     if (n >= 10) return '$n';
     return '0$n';
   }
+}
+
+extension ComponentValueExtension<T> on Future<T> {
+  Future<Optional<V>> componentValue<V>(V Function() supplier) =>
+      then((_) => Optional.value(supplier()))
+          .onError((_, __) => Optional.error());
 }

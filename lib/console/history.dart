@@ -21,11 +21,12 @@ class Navigator extends Event {
     eventLoop.addEvent(this);
     inputLoop.addAdditionalListener((key) {
       if (key.controlChar == ControlCharacter.end && canGoBack()) {
-        goBack();
         return false;
       }
 
       return true;
+    }, () {
+      goBack();
     });
   }
 
@@ -37,16 +38,17 @@ class Navigator extends Event {
   /// Routes to a named route set by [addRoute(String, Navigation)].
   /// Before the route is shown, the cursor position is reset to
   /// [Context#startContent]
-  Future<dynamic> routeToName(String name, [Map<String, dynamic> payload]) =>
+  Future<Optional<T>> routeToName<T>(String name,
+          [Map<String, dynamic> payload]) =>
       routeTo(_routes[name](), payload);
 
   /// Routes to an arbitrary [Navigation].
   /// Before the route is shown, the cursor position is reset to
   /// [Context#startContent]
-  Future<dynamic> routeTo(Navigation navigation,
+  Future<Optional<T>> routeTo<T>(Navigation navigation,
       [Map<String, dynamic> payload]) {
-    var entry = _HistoryEntry(
-        navigation, payload, () => _history.removeLast());
+    var entry =
+        _HistoryEntry<T>(navigation, payload, () => _history.removeLast());
     try {
       _history.add(entry);
       return entry._completer.future;
@@ -113,11 +115,11 @@ class NavItem {
   String toString() => 'NavItem[$action]';
 }
 
-class _HistoryEntry extends NavItem {
+class _HistoryEntry<T> extends NavItem {
   final Navigation navigation;
   final Map<String, dynamic> payload;
   final Function onExit;
-  Completer _completer = Completer();
+  Completer<Optional<T>> _completer = Completer<Optional<T>>();
 
   /// [onExit] is meant for removing it from the history, invoked when the
   /// display method is finished (or it is backed out).
@@ -132,16 +134,21 @@ class _HistoryEntry extends NavItem {
 
   void destroy() {
     navigation.destroy();
-    _completer.completeError(BackException());
+    _completer.complete(Optional<T>.error());
+    _completer = null;
   }
 
   void redisplay() {
     Future.value(navigation.display(payload))
-      .then((v) {
-        _completer.complete(v);
-        _completer = null;
-      })
-      .whenComplete(() => onExit());
+        .then((v) {
+          _completer.complete(Optional.value(v));
+          _completer = null;
+        })
+        .then((_) => onExit())
+        .catchError((e) {
+          // print(e);
+          // This is yucky but whatever
+        }, test: (e) => e is InputBreakException);
   }
 }
 
@@ -162,20 +169,28 @@ abstract class Navigation {
   /// not been completed.
   void destroy();
 
-  Future<T> waitFor<T>(ComponentValue<T> value) {
-    if (!value.hasValue) {
-
-    }
-  }
+  ///
+  /// var waitedFuture = await nav.routeToName('whatever');
+  /// if (waitedFuture.error) return;
+  /// var waited = waitedFuture.value;
 }
 
-class ComponentValue<T> {
-  /// If the value was retrieved. If false, it was probably backed out of.
-  final bool hasValue;
+class Optional<T> {
+  /// If an error occurred while getting the value for whatever reason.
+  final bool error;
 
   final T value;
 
-  ComponentValue(this.hasValue, this.value);
+  Optional.value(this.value) : error = false;
+
+  const Optional.error()
+      : error = true,
+        value = null;
+
+  /// If no error present, this transforms the value and returns a new
+  /// [Optional].
+  Optional<V> transform<V>(V Function(T) transform) =>
+      error ? Optional.error() : Optional.value(transform(value));
 }
 
 class BackException {}

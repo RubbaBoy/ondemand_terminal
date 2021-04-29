@@ -8,6 +8,7 @@ import 'package:ondemand_terminal/console/component/number_field.dart';
 import 'package:ondemand_terminal/console/component/selectable_list.dart';
 import 'package:ondemand_terminal/console/console_util.dart';
 import 'package:ondemand_terminal/console/history.dart';
+import 'package:ondemand_terminal/console/input_loop.dart';
 import 'package:ondemand_terminal/console/logic.dart';
 import 'package:ondemand_terminal/console/time_handler.dart';
 import 'package:ondemand_terminal/enums.dart';
@@ -49,18 +50,28 @@ To select menu items, use arrow keys to navigate, space to select, and enter to 
         multi: false,
         autoSelect: true);
 
-    var time = await placeTime.displayOne();
+    var timeOptional = await placeTime.displayOne();
+    if (timeOptional.error) {
+      throw InputBreakException();
+    }
+    var time = timeOptional.value;
     placeTime.destroy();
 
     context.console.console.cursorPosition = timePosition;
 
     print('1time= $time');
     if (time == OrderPlaceTime.FIND) {
-      time = await navigator.routeToName('time_selection', {'position': timePosition});
+      var timeResult = await navigator.routeToName<OrderPlaceTime>('time_selection', {'position': timePosition});
+      if (timeResult.error) {
+        throw InputBreakException();
+      }
+
+      time = timeResult.value;
     }
 
     print('2time = $time');
 
+    print('EXITING!');
     exit(0);
 
     // Clear the top text too

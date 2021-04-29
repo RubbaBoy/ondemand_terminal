@@ -1,19 +1,19 @@
 import 'dart:async';
-import 'dart:cli';
+import 'dart:math' as math;
 
 import 'package:dart_console/dart_console.dart';
 import 'package:meta/meta.dart';
 import 'package:ondemand_terminal/console/component/destroyable.dart';
+import 'package:ondemand_terminal/console/history.dart';
 import 'package:ondemand_terminal/console/input_loop.dart';
-import '../console_util.dart';
-import 'dart:math' as math;
+import 'package:ondemand_terminal/extensions.dart';
 
 import '../../console.dart';
+import '../console_util.dart';
 import 'base.dart';
 import 'option_managers.dart';
 
 class SelectableList<T> with Destroyable {
-
   final Coordinate position;
 
   final int width;
@@ -67,10 +67,37 @@ class SelectableList<T> with Destroyable {
   /// The bottom index
   int scrollTo = 0;
 
-  SelectableList._(this.console, this.inputLoop, this.position, this.optionManager, this.width, this.scrollAfter, this.items, this.lowerDescription, this.upperDescription, this.multi, this.min, this.max, this.autoSelect, this.scrolling, this.scrollTo);
+  SelectableList._(
+      this.console,
+      this.inputLoop,
+      this.position,
+      this.optionManager,
+      this.width,
+      this.scrollAfter,
+      this.items,
+      this.lowerDescription,
+      this.upperDescription,
+      this.multi,
+      this.min,
+      this.max,
+      this.autoSelect,
+      this.scrolling,
+      this.scrollTo);
 
-  factory SelectableList({@required Console console,
-    @required InputLoop inputLoop, Coordinate position, OptionManager<T> optionManager, int width, int scrollAfter, @required List<T> items, String lowerDescription, String upperDescription, bool multi = true, int min = 0, int max = 1, bool autoSelect = false}) {
+  factory SelectableList(
+      {@required Console console,
+      @required InputLoop inputLoop,
+      Coordinate position,
+      OptionManager<T> optionManager,
+      int width,
+      int scrollAfter,
+      @required List<T> items,
+      String lowerDescription,
+      String upperDescription,
+      bool multi = true,
+      int min = 0,
+      int max = 1,
+      bool autoSelect = false}) {
     optionManager ??= DefaultOptionManager<T>();
     var _items = items.map(optionManager.createOption).toList();
     scrollAfter ??= double.maxFinite.toInt();
@@ -82,17 +109,32 @@ class SelectableList<T> with Destroyable {
     var _scrolling = items.length > scrollAfter;
     var _scrollTo = math.min(items.length, scrollAfter);
 
-    return SelectableList._(console, inputLoop, position, optionManager, width, scrollAfter, _items, lowerDescription, upperDescription, multi, min, max, autoSelect, _scrolling, _scrollTo);
+    return SelectableList._(
+        console,
+        inputLoop,
+        position,
+        optionManager,
+        width,
+        scrollAfter,
+        _items,
+        lowerDescription,
+        upperDescription,
+        multi,
+        min,
+        max,
+        autoSelect,
+        _scrolling,
+        _scrollTo);
   }
 
   /// Same as [#display(void Function())] but only takes the first
   /// element from the result (or null).
-  Future<T> displayOne() =>
-      display().then((list) => list.isEmpty ? null : list.first);
+  Future<Optional<T>> displayOne() => display().then(
+      (value) => value.transform((list) => list.isEmpty ? null : list.first));
 
   /// Displays the list, and when everything is selected, [callback] is invoked
   /// once.
-  Future<List<T>> display() async {
+  Future<Optional<List<T>>> display() async {
     _redisplay();
 
     /// 0 is no wrapping occurred
@@ -127,10 +169,10 @@ class SelectableList<T> with Destroyable {
       return false;
     }
 
-    await inputLoop.listen((key) {
+    return inputLoop.listen((key) {
       if (key.controlChar == ControlCharacter.arrowUp) {
         index--;
-        if (!processWrapIndex() && scrolling && index + 1== scrollFrom) {
+        if (!processWrapIndex() && scrolling && index + 1 == scrollFrom) {
           scrollFrom--;
           scrollTo--;
         }
@@ -166,13 +208,13 @@ class SelectableList<T> with Destroyable {
 
       _redisplay();
       return true;
-    });
-
-    return getSelected().map((option) => option.value).toList();
+    }).componentValue(
+        () => getSelected().map((option) => option.value).toList());
   }
 
   @override
-  void destroy() => clearView(console, _cursor, width, _cursor.row - position.row + 1);
+  void destroy() =>
+      clearView(console, _cursor, width, _cursor.row - position.row + 1);
 
   int amountSelected() => getSelected().length;
 
@@ -189,14 +231,21 @@ class SelectableList<T> with Destroyable {
       var value = items[i];
       console.setForegroundColor(ConsoleColor.brightBlack);
       console.write('[');
-      console.setForegroundColor(value.selected ? ConsoleColor.brightGreen : ConsoleColor.red);
+      console.setForegroundColor(
+          value.selected ? ConsoleColor.brightGreen : ConsoleColor.red);
       console.write(index == i ? '-' : 'x');
       console.setForegroundColor(ConsoleColor.brightBlack);
       console.write('] ');
       console.resetColorAttributes();
 
       // TODO: Allow for formatting!
-      var wrapped = wrapString(optionManager.displayFormattedString(value).map((e) => e.value).join('\n'), width, 4);
+      var wrapped = wrapString(
+          optionManager
+              .displayFormattedString(value)
+              .map((e) => e.value)
+              .join('\n'),
+          width,
+          4);
       console.write(wrapped);
       console.writeLine();
 
@@ -205,7 +254,8 @@ class SelectableList<T> with Destroyable {
 
     var lowerLines = printText(lowerDescription, true);
 
-    _cursor = position.add(row: row + upperLines + lowerLines, col: lowerDescription?.length ?? 0);
+    _cursor = position.add(
+        row: row + upperLines + lowerLines, col: lowerDescription?.length ?? 0);
   }
 
   /// Prints test, returning a list of the used newlines;

@@ -13,6 +13,7 @@ import 'package:ondemand_terminal/console/component/text_field.dart';
 import 'package:ondemand_terminal/console/component/tiled_selection.dart';
 import 'package:ondemand_terminal/console/console_util.dart';
 import 'package:ondemand_terminal/console/history.dart';
+import 'package:ondemand_terminal/console/input_loop.dart';
 import 'package:ondemand_terminal/console/logic.dart';
 
 /// If an item requires special stuff like toppings, this is shown
@@ -49,7 +50,12 @@ class OrderFinalize extends Navigation {
         position: timePosition,
         width: context.mainPanelWidth,
         upperDescription: 'List any allergies:');
-    var allergies = await allergyField.display();
+    var allergiesOptional = await allergyField.display();
+    if (allergiesOptional.error) {
+      throw InputBreakException();
+    }
+
+    var allergies = allergiesOptional.value;
 
     var field = current = NumberField(
         console: console,
@@ -57,7 +63,12 @@ class OrderFinalize extends Navigation {
         position: timePosition,
         width: context.mainPanelWidth,
         upperDescription: 'Count:');
-    var count = await field.display();
+    var countOptional = await field.display();
+    if (countOptional.error) {
+      throw InputBreakException();
+    }
+
+    var count = countOptional.value;
 
     // Clear the top text too
     clearView(console, timePosition, context.mainPanelWidth, lineHeight + 1);

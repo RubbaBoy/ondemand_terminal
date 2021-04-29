@@ -5,6 +5,7 @@ import 'package:ondemand_terminal/console.dart';
 import 'package:ondemand_terminal/console/component/destroyable.dart';
 import 'package:ondemand_terminal/console/component/selectable_list.dart';
 import 'package:ondemand_terminal/console/history.dart';
+import 'package:ondemand_terminal/console/input_loop.dart';
 import 'package:ondemand_terminal/console/logic.dart';
 import 'package:ondemand_terminal/console/time_handler.dart';
 import 'package:ondemand_terminal/enums.dart';
@@ -44,8 +45,12 @@ class TimeSelection extends Navigation {
         autoSelect: true,
         scrollAfter: 15);
 
-    var time = await timeSelect.displayOne();
-    print('time = $time');
+    var timeOptional = await timeSelect.displayOne();
+    if (timeOptional.error) {
+      throw InputBreakException();
+    }
+    var time = timeOptional.value;
+    print('time = $time'); // this should see an InputBreakException!
     timeSelect.destroy();
 
     context.breadcrumb.trailPop();

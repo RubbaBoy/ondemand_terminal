@@ -10,6 +10,7 @@ import 'package:ondemand_terminal/console/component/option_managers.dart';
 import 'package:ondemand_terminal/console/component/tiled_selection.dart';
 import 'package:ondemand_terminal/console/console_util.dart';
 import 'package:ondemand_terminal/console/history.dart';
+import 'package:ondemand_terminal/console/input_loop.dart';
 import 'package:ondemand_terminal/console/logic.dart';
 import 'package:ondemand_terminal/console/screens/order_finalize.dart';
 import 'package:ondemand_terminal/extensions.dart';
@@ -51,22 +52,33 @@ class ListItems extends Navigation {
       containerWidth: context.mainPanelWidth,
     );
 
-    var item = await tile.display();
+    var itemOptional = await tile.display();
+    if (itemOptional.error) {
+      throw InputBreakException();
+    }
+    var item = itemOptional.value;
 
     // If childGroups is FILLED, do get_item request (childGroups#id is the id of something idk)
     List<SelectedModifiers> modifiers;
     if (item.childGroups.isNotEmpty) {
-      modifiers = (await navigator.routeToName('item_option', {'item': item}))
-          as List<SelectedModifiers>;
+      var modifierResult = await navigator.routeToName<List<SelectedModifiers>>('item_option', {'item': item});
+      if (modifierResult.error) {
+        return;
+      }
+      modifiers = modifierResult.value;
     }
 
-    var finalizeResult = (await navigator
-        .routeToName('order_finalize', {'item': item})) as OrderFinalizeResult;
+    var finalizeResult = await navigator.routeToName<OrderFinalizeResult>('order_finalize', {'item': item});
+    if (finalizeResult.error) {
+      return;
+    }
+
+    var finalize = finalizeResult.value;
 
     await logic.addItemToOrder(
         kitchenSelector.kitchen,
         foodItemToItem(
-            item, modifiers, finalizeResult.count, finalizeResult.allergies),
+            item, modifiers, finalize.count, finalize.allergies),
         kitchenSelector.time);
   }
 

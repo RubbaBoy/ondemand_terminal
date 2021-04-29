@@ -3,7 +3,9 @@ import 'dart:math';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:ondemand_terminal/console/component/destroyable.dart';
+import 'package:ondemand_terminal/console/history.dart';
 import 'package:ondemand_terminal/console/input_loop.dart';
+import 'package:ondemand_terminal/extensions.dart';
 
 import '../../console.dart';
 import '../console_util.dart';
@@ -83,15 +85,14 @@ class TiledSelection<T> with Destroyable {
         containerWidth, tileWidth, tileHeight, borderColor, selectedColor);
   }
 
-  Future<T> display() async {
+  Future<Optional<T>> display() async {
     _redisplay();
 
     // coords of the tile
     var x = index % tileXCount;
     var y = (index / tileXCount).floor();
 
-    var completer = Completer<T>();
-    await inputLoop.listen((key) {
+    return inputLoop.listen((key) {
       if (key.controlChar == ControlCharacter.arrowUp) {
         y--;
       } else if (key.controlChar == ControlCharacter.arrowDown) {
@@ -107,7 +108,6 @@ class TiledSelection<T> with Destroyable {
         }
 
         destroy();
-        completer.complete(current.value);
         return false;
       } else if (key.controlChar == ControlCharacter.ctrlC) {
         close(console, 'Terminal closed by user');
@@ -153,9 +153,7 @@ class TiledSelection<T> with Destroyable {
 
       _redisplay();
       return true;
-    });
-
-    return completer.future;
+    }).componentValue(() => getSelected().first.value);
   }
 
   @override
